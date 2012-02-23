@@ -1,4 +1,8 @@
 #Installation
+	sudo npm install illumina2bam-tools -g
+
+OR
+
 	git clone http://github.com/staliv/illumina2bam-tools.git
 	cd illumina2bam-tools
 	sudo npm install . -g
