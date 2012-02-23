@@ -1,12 +1,16 @@
 #Installation
-sudo npm install illumina2bam-tools -g
+	git clone http://github.com/staliv/illumina2bam-tools.git
+	cd illumina2bam-tools
+	sudo npm install . -g
+
+This will create links in the `/usr/local/bin/` directory for the existing tools in this package. 
 
 ##Settings
 	/usr/local/lib/node_modules/illumina2bam-tools/settings.json
 
 - specify which directory contains the distributed jars from the illumina2bam project
-- the scripts will automatically search for the jars by looking recursively one folder "up" from your current working directory
-- the scripts will try to write to the `settings.json` file but they will fail (somewhat gracefully) as long as the scripts aren't run as a user with write permission to the `/usr/local/lib/node_modules/illumina2bam-tools/` directory
+- the scripts will automatically search for the jars by looking recursively one folder "up" from your current working directory (when invoking for example the `illumina2bam_demultiplex_wrapper`)
+- the scripts will try to write to the `settings.json` file but they will fail (somewhat gracefully) as long as the scripts aren't running as a user with write permissions to the `/usr/local/lib/node_modules/illumina2bam-tools/` directory
 - specify the directory where your jars are located (in the `settings.json` file) in order to speed up the process
 
 ##Usage
@@ -31,3 +35,4 @@ Usage: `illumina2bam_demultiplex_wrapper`
 	  --debug                   Parse the first tile in each lane                                                                                            [default: false]
 	  --force                   Disables check if library already exists, hence overwrites files if the already exist                                        [default: false]
 	  --omitLanes               Comma separated list with numbers identifying lanes to omit                                                                  [default: ""]
+
