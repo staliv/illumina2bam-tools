@@ -1,6 +1,6 @@
 {
     "name" : "illumina2bam-tools",
-    "version" : "0.1",
+    "version" : "0.1.0",
     "description" : "Tools for working with the illumina2bam fork located at https://github.com/staliv/illumina2bam. The fork is modified for the Lund oncology research department workflow.",
     "main" : "./index.js",
     "dependencies" : {
