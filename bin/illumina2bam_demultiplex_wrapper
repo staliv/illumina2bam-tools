@@ -101,6 +101,7 @@ if (argv.f !== "bam") {
 //Create main log
 wrench.mkdirSyncRecursive(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/"));
 var mainFileLog = fs.createWriteStream(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/demultiplex.log"), {'flags': 'a', encoding: "utf8", mode: 0666});
+
 var mainLog = {
 	file: mainFileLog,
 	"put": function(message) {
@@ -159,6 +160,7 @@ function handleRunResult(err, result) {
 function run(barcodeFiles, barcodes, callback) {
 
 	var counter = 0;
+	var results = [];
 	
 	for (lane in barcodeFiles) {
 		
@@ -186,7 +188,6 @@ function run(barcodeFiles, barcodes, callback) {
 			if (sanity.result) {
 				//Everything seems ok, begin parsing and demultiplexing for this lane
 				counter++;
-				var results = [];
 
 				//Create log for this lane
 				var fileLog = fs.createWriteStream(argv.outputDirectory + "/Undetermined/" + getRunId() + "/demultiplex_" + lane + ".log", {'flags': 'a', encoding: "utf8", mode: 0666});
@@ -289,26 +290,24 @@ function decodeLane(argsIllumina2bam, argsBamIndexDecoder, lane, log, callback) 
 	var illumina2bam = spawn('java', argsIllumina2bam, {cwd: process.cwd, env: process.env, setsid: true});
 	var bamIndexDecoder = spawn('java', argsBamIndexDecoder, {cwd: process.cwd, env: process.env, setsid: true});
 
-	illumina2bam.stdout.on('data', function (data) {
-		bamIndexDecoder.stdin.write(data);
-	});
+	illumina2bam.stdout.pipe(bamIndexDecoder.stdin);
 
 	illumina2bam.stderr.on('data', function (data) {
 		log.put(data);
 	});
 
-	illumina2bam.on('exit', function (code) {
+	illumina2bam.on('exit', function(code) {
 		if (code !== 0) {
 			log.error('illumina2bam process exited with code ' + code);
 		}
 		bamIndexDecoder.stdin.end();
 	});
 
-	bamIndexDecoder.stderr.on('data', function (data) {
+	bamIndexDecoder.stderr.on('data', function(data) {
 		log.put(data);
 	});
 
-	bamIndexDecoder.on('exit', function (code) {
+	bamIndexDecoder.on('exit', function(code) {
 		if (code !== 0) {
 			log.error('bamIndexDecoder process exited with code ' + code);
 			callback('bamIndexDecoder process exited with code ' + code, "");
