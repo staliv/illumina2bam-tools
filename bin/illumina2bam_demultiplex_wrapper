@@ -425,6 +425,9 @@ function parseSheetToBarcodes(sampleSheet, callback) {
 	
 	lines = lines.splice(1);
 
+	//Remove [barcode]" (Name of barcode)"
+	lines = normalizeBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers));
+
 	var lanes = splitLinesByLanes(headers, lines);
 
 	var barcodes = {};
@@ -493,6 +496,16 @@ function normalizeHeaders(headers) {
 	});
 
 	return headers;
+}
+
+function normalizeBarcodes(lines, barcodeIndex) {
+	lines = lines.filter(function(line) { if (line !== "") { return true; } else { return false; } }).map(function(line) {
+		line = line.split("\t");
+		line[barcodeIndex] = line[barcodeIndex].replace(/\ /g, "").replace(/\(.+\)/g, "");
+		return line.join("\t");
+	});
+
+	return lines;
 }
 
 function getRunId() {
@@ -620,6 +633,20 @@ var sanityChecks = {
 			sanity = sanityChecks.checkLibrary(headers, lines);
 		}
 
+		if (sanity.result) {
+			//Check if jars dir is set
+			sanity = sanityChecks.checkJarsDirectory();
+		}
+
+		return sanity;
+	},
+	
+	checkJarsDirectory: function() {
+		var sanity = {result: true, message: null};
+		if (illumina2bamSettings.illumina2bam.jarsDirectory === null) {
+			sanity.result = false;
+			sanity.message = "Could not find the directory containing the illumina2bam jars. The variable \"jarsDirectory\" is not set in the settings.json file.";
+		}
 		return sanity;
 	},
 	
