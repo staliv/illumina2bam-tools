@@ -258,7 +258,7 @@ function run(barcodeFiles, barcodes, callback) {
 						createOutputSampleSheets(mainSampleSheet, outputDirs);
 
 						//Remove temp directory
-						//wrench.rmdirSyncRecursive(argv.tempDirectory, false);
+						wrench.rmdirSyncRecursive(argv.tempDirectory, false);
 
 						callback(null, results);
 					}
