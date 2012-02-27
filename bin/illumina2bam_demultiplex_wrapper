@@ -258,7 +258,7 @@ function run(barcodeFiles, barcodes, callback) {
 						createOutputSampleSheets(mainSampleSheet, outputDirs);
 
 						//Remove temp directory
-						wrench.rmdirSyncRecursive(argv.tempDirectory, false);
+						//wrench.rmdirSyncRecursive(argv.tempDirectory, false);
 
 						callback(null, results);
 					}
@@ -427,6 +427,9 @@ function parseSheetToBarcodes(sampleSheet, callback) {
 	//Remove [barcode]" (Name of barcode)"
 	lines = normalizeBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers));
 
+	//Set "" to [empty]
+	lines = normalizeEmptyValues(lines);
+
 	var lanes = splitLinesByLanes(headers, lines);
 
 	var barcodes = {};
@@ -506,6 +509,23 @@ function normalizeBarcodes(lines, barcodeIndex) {
 
 	return lines;
 }
+
+function normalizeEmptyValues(lines) {
+	lines = lines.filter(function(line) { if (line !== "") { return true; } else { return false; } }).map(function(line) {
+		line = line.split("\t");
+		line = line.map(function(val) {
+			if (val === "") {
+				val = "[empty]";
+			}
+			return val;
+		});
+		return line.join("\t");
+	});
+
+	return lines;
+}
+
+
 
 function getRunId() {
 	if (runId === null || runId === undefined) {
