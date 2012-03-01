@@ -575,7 +575,8 @@ function copyFilesAndDirs(list, fromDir, toDir, log) {
 		if (name.indexOf("[temp]") > -1) {
 			fromPath = path.normalize(name.replace("[temp]", argv.tempDirectory));
 		} else {
-			fromPath = path.normalize(fromDir + "/" + name);
+			fromDir = (fromDir === "") ? "" : fromDir + "/";
+			fromPath = path.normalize(fromDir + name);
 		}
 		var toPath = path.normalize(toDir + "/" + list[name]);
 		if (path.existsSync(fromPath)) {
