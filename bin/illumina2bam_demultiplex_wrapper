@@ -424,8 +424,8 @@ function parseSheetToBarcodes(sampleSheet, callback) {
 	
 	lines = lines.splice(1);
 
-	//Remove [barcode]" (Name of barcode)"
-	lines = normalizeBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers));
+	//Remove [barcode]" (Name of barcode)" and double up the barcode if I[n] is twice the length of the given barcode
+	lines = normalizeBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers), getIndexForHeaderName("readstring", headers));
 
 	//Set "" to [empty]
 	lines = normalizeEmptyValues(lines);
@@ -500,12 +500,52 @@ function normalizeHeaders(headers) {
 	return headers;
 }
 
-function normalizeBarcodes(lines, barcodeIndex) {
-	lines = lines.filter(function(line) { if (line !== "") { return true; } else { return false; } }).map(function(line) {
+function normalizeBarcodes(lines, barcodeIndex, readStringIndex) {
+
+	lines = lines.filter(function(line) { if (line !== "" && line.substr(0, 1) !== "#") { return true; } else { return false; } }).map(function(line) {
+		//Remove " (nickname)" from barcode
 		line = line.split("\t");
 		line[barcodeIndex] = line[barcodeIndex].replace(/\ /g, "").replace(/\(.+\)/g, "");
+
+		//Fetch length of barcode from ReadString
+		var barcodeInstances = line[readStringIndex].match(/(i|j)\d+/ig);
+		if (barcodeInstances !== null) {
+			var barcodeLength = 0;
+			var jokerPositions = [];
+			var indexCounter = 0;
+			//Add all barcode lengths to one
+			barcodeInstances.forEach(function(instance) {
+				barcodeLength += parseInt(instance.replace(/\w/i, ""));
+
+				//Extract joker positions
+				if (instance.charAt(0).toUpperCase() === "J") {
+					for (var i = 0; i < parseInt(instance.replace(/\w/i, "")); i++) {
+						indexCounter += i;
+						jokerPositions.push(indexCounter);
+					}
+				} else if (instance.charAt(0).toUpperCase() === "I") {
+					indexCounter += parseInt(instance.replace(/\w/i, ""));
+				}
+			});
+
+			if (typeof barcodeLength === "number" && barcodeLength > 0 && (barcodeLength / 2) === line[barcodeIndex].length) {
+				line[barcodeIndex] += line[barcodeIndex];
+			}
+
+			if (jokerPositions.length > 0) {
+				//Replace joker bases in barcode with J
+				var tempBarcode = line[barcodeIndex].split("");
+				jokerPositions.forEach(function(index) {
+					tempBarcode[index] = "J";
+				});
+				line[barcodeIndex] = tempBarcode.join("");
+			}
+
+		}
+
 		return line.join("\t");
 	});
+
 
 	return lines;
 }
