@@ -43,7 +43,7 @@ var argv = require('optimist')
 	    .demand('s')
 	    .demand('b')
 	    .demand('o')
-	    .demand('t')
+	    .default('t', '/tmp/')
 		.default('f', 'bam')
 		.default('m', 0)
 		.default('d', 2)
@@ -53,6 +53,7 @@ var argv = require('optimist')
 		.default('im', "2g")
 		.default('ib', "1g")
 		.default('omitLanes', "")
+		.default('skipUndetermined', false)
 	    .alias('v', 'verbose')
 	    .alias('s', 'samplesheet')
 	    .alias('b', 'basecallsDirectory')
@@ -70,6 +71,9 @@ var argv = require('optimist')
 		.options('n', {
 			default : 0,
 		})
+		.options('t', {
+			default: '/tmp/'
+		})
 	    .describe('s', 'Samplesheet')
 	    .describe('b', 'Basecalls directory')
 	    .describe('o', 'Output directory, sub dirs /project/RunID will be created')
@@ -84,6 +88,7 @@ var argv = require('optimist')
 	    .describe('debug', 'Parse the first tile in each lane')
 	    .describe('force', 'Disables check if library already exists, hence overwrites files if the already exist')
 	    .describe('omitLanes', 'Comma separated list with numbers identifying lanes to omit')
+	    .describe('skipUndetermined', 'Skips output of undetermined reads. Saves lots of I/O when re-running a single lane for example.')
 	    .argv
 	;
 
@@ -92,7 +97,13 @@ var mainSampleSheet = null;
 var intensitiesDirectory = path.normalize(argv.basecallsDirectory + "/../.");
 var outputDirs = {};
 
-argv.tempDirectory = path.normalize(argv.tempDirectory + "/" + getRunId() + "/");
+var tempFolderName = require('node-uuid').v4();
+
+if (argv.tempDirectory === undefined) {
+	argv.tempDirectory = argv.t;
+}
+
+argv.tempDirectory = path.normalize(argv.tempDirectory + "/" + tempFolderName + "/");
 
 if (argv.f !== "bam") {
 	argv.f = "sam";
@@ -180,7 +191,7 @@ function run(barcodeFiles, barcodes, callback) {
 			wrench.mkdirSyncRecursive(undeterminedDir, 0777);
 
 			var argsIllumina2bam = ("-d64; -Xmx" + argv.im + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/illumina2bam.jar; I=" + intensitiesDirectory + "; L=" + lane + "; O=/dev/stdout; PF=false; RI=" + readIndex + "; QUIET=true; COMPRESSION_LEVEL=0" + debug + "; TEMP_DIR=" + argv.tempDirectory).split("; ");
-			var argsBamIndexDecoder = ("-d64; -Xmx" + argv.ib + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/BamIndexDecoder.jar; I=/dev/stdin; OUTPUT_DIR=" + path.normalize(argv.outputDirectory) + "; OUTPUT_FORMAT=" + argv.f + "; OUTPUT_PREFIX=na; BARCODE_FILE=" + path.normalize(barcodeFiles[lane]) + "; M=" + path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/demultiplex_metrics_" + lane + ".txt; MAX_MISMATCHES=" + argv.m + "; MIN_MISMATCH_DELTA=" + argv.d + "; MAX_NO_CALLS=" + argv.n).split("; ");
+			var argsBamIndexDecoder = ("-d64; -Xmx" + argv.ib + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/BamIndexDecoder.jar; I=/dev/stdin; OUTPUT_DIR=" + path.normalize(argv.outputDirectory) + "; OUTPUT_FORMAT=" + argv.f + "; OUTPUT_PREFIX=na; BARCODE_FILE=" + path.normalize(barcodeFiles[lane]) + "; M=" + path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/demultiplex_metrics_" + lane + ".txt; MAX_MISMATCHES=" + argv.m + "; MIN_MISMATCH_DELTA=" + argv.d + "; MAX_NO_CALLS=" + argv.n + "; SKIP_UNDETERMINED=" + argv.skipUndetermined).split("; ");
 
 			//Perform sanity checks
 			var sanity = sanityChecks.checkEverything(barcodes[lane]);
