@@ -398,6 +398,7 @@ function createOutputSampleSheets(sampleSheet, outputDirs) {
 	});
 	
 	var projectIndex = getIndexForHeaderName("Project (pr)", headers);
+	var laneIndex = getIndexForHeaderName("Lane", headers);
 	
 	if (projectIndex === null) {
 		console.error("Could not find \"Project (pr)\" header in samplesheet");
@@ -406,12 +407,17 @@ function createOutputSampleSheets(sampleSheet, outputDirs) {
 			var projectName = outputDir.split("/");
 			projectName = projectName[projectName.length - 3];
 			//Create samplesheet file
-			var sampleSheetFileOut = fs.createWriteStream(path.normalize(outputDir + "/" + projectName + "_" + getRunId() + "_samplesheet.txt"), {'flags': 'w', encoding: "utf8", mode: 0666});
-			sampleSheetFileOut.write("#" + headers.join("\t") + "\n");
+			var laneOutputs = {};
 			//Start checking each line
 			lines.forEach(function(line) {
 				if (line.split("\t")[projectIndex] === projectName) {
-					sampleSheetFileOut.write(line + "\n");
+					var lane = line.split("\t")[laneIndex];
+					if (laneOutputs[lane] === undefined) {
+						var sampleSheetFileOut = fs.createWriteStream(path.normalize(outputDir + "/" + projectName + "_" + getRunId() + "_" + lane + "_samplesheet.txt"), {'flags': 'w', encoding: "utf8", mode: 0666});
+						sampleSheetFileOut.write("#" + headers.join("\t") + "\n");
+						laneOutputs[lane] = sampleSheetFileOut;
+					}
+					laneOutputs[lane].write(line + "\n");
 				}
 			});
 		}
