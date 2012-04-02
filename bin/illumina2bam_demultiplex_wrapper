@@ -269,7 +269,7 @@ function run(barcodeFiles, barcodes, callback) {
 						createOutputSampleSheets(mainSampleSheet, outputDirs);
 
 						//Remove temp directory
-						wrench.rmdirSyncRecursive(argv.tempDirectory, false);
+						//wrench.rmdirSyncRecursive(argv.tempDirectory, false);
 
 						callback(null, results);
 					}
@@ -531,8 +531,8 @@ function normalizeBarcodes(lines, barcodeIndex, readStringIndex) {
 				//Extract joker positions
 				if (instance.charAt(0).toUpperCase() === "J") {
 					for (var i = 0; i < parseInt(instance.replace(/\w/i, "")); i++) {
-						indexCounter += i;
 						jokerPositions.push(indexCounter);
+						indexCounter++;
 					}
 				} else if (instance.charAt(0).toUpperCase() === "I") {
 					indexCounter += parseInt(instance.replace(/\w/i, ""));
