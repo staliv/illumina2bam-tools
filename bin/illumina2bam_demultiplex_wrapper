@@ -441,7 +441,11 @@ function parseSheetToBarcodes(sampleSheet, callback) {
 	
 	lines = lines.splice(1);
 
-	//Remove [barcode]" (Name of barcode)" and double up the barcode if I[n] is twice the length of the given barcode
+	//Copy the original barcode to a new header named "original_barcode_sequence"
+	headers.push("original_barcode_sequence");
+	lines = addOriginalBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers));
+
+	//Remove [barcode]" (Name of barcode)" and double up the barcode if I[n] (length of total index) is twice the length of the given barcode
 	lines = normalizeBarcodes(lines, getIndexForHeaderName("barcode_sequence", headers), getIndexForHeaderName("readstring", headers));
 
 	//Set "" to [empty]
@@ -563,6 +567,23 @@ function normalizeBarcodes(lines, barcodeIndex, readStringIndex) {
 		return line.join("\t");
 	});
 
+	return lines;
+}
+
+
+function addOriginalBarcodes(lines, barcodeIndex) {
+
+	lines = lines.filter(function(line) { if (line !== "" && line.substr(0, 1) !== "#") { return true; } else { return false; } }).map(function(line) {
+		//Remove " (nickname)" from barcode
+		line = line.split("\t");
+
+		var originalBarcode = line[barcodeIndex].replace(/\ /g, "").replace(/\(.+\)/g, "");
+
+		//Push to last position
+		line.push(originalBarcode);
+
+		return line.join("\t");
+	});
 
 	return lines;
 }
