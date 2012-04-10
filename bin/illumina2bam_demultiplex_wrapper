@@ -310,6 +310,8 @@ function decodeLane(argsIllumina2bam, argsBamIndexDecoder, lane, log, callback) 
 	illumina2bam.on('exit', function(code) {
 		if (code !== 0) {
 			log.error('illumina2bam process exited with code ' + code);
+			//Stop the bamIndexDecoder process as well
+			//bamIndexDecoder.kill();
 		}
 		bamIndexDecoder.stdin.end();
 	});
@@ -321,6 +323,8 @@ function decodeLane(argsIllumina2bam, argsBamIndexDecoder, lane, log, callback) 
 	bamIndexDecoder.on('exit', function(code) {
 		if (code !== 0) {
 			log.error('bamIndexDecoder process exited with code ' + code);
+			//Stop the illumina2bam process as well
+			illumina2bam.kill();
 			callback('bamIndexDecoder process exited with code ' + code, "");
 		} else {
 
@@ -452,6 +456,30 @@ function parseSheetToBarcodes(sampleSheet, callback) {
 	lines = normalizeEmptyValues(lines);
 
 	var lanes = splitLinesByLanes(headers, lines);
+
+	//Check if all lanes are represented
+	var lanesNotRepresented = [1,2,3,4,5,6,7,8];
+	lanesNotRepresented = lanesNotRepresented.filter(function(laneNumber) {
+		return !omitLane(laneNumber);
+	}).filter(function(laneNumber) {
+		var hasLane = false;
+		for (lane in lanes) {
+			lane = parseInt(lane);
+			if (laneNumber === lane) {
+				hasLane = true;
+			}
+		}
+		return !hasLane;
+	});
+
+	if (lanesNotRepresented.length > 0) {
+		//Some lane is not represented either in the --omitLanes or in the barcode files
+		if (lanesNotRepresented.length === 1) {
+			return callback("Lane " + lanesNotRepresented.join(", ") + " is missing from the samplesheet. Use '--omitLanes " + argv.omitLanes.concat(lanesNotRepresented).filter(function(lane) { if (lane !== "" && lane !== undefined) {return true;} else {return false;}}).join(",") + "' or modify the samplesheet and try again.")
+		} else {
+			return callback("Lanes " + lanesNotRepresented.join(", ") + " are missing from the samplesheet. Use '--omitLanes " + argv.omitLanes.concat(lanesNotRepresented).filter(function(lane) { if (lane !== "" && lane !== undefined) {return true;} else {return false;}}).join(",") + "' or modify the samplesheet and try again.")
+		}
+	}
 
 	var barcodes = {};
 	for (lane in lanes) {
