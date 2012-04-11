@@ -527,20 +527,28 @@ function splitLinesByLanes(headers, lines) {
 
 function normalizeHeaders(headers) {
 
+	//Remove the first #
 	if (headers.length > 0 && headers[0].substr(0, 1) === "#") {
 		headers[0] = headers[0].substr(1);
 	}
-
+	//Remove empty headers
 	headers = headers.map(function(header) {
 		header = header.toLowerCase();
+
 		if (header.indexOf("(") > 0 && header.indexOf(")") > 0) {
 			var shortName = header.split("(")[1].split(")")[0];
 			var longName = header.split("(")[0].replace(" ", "");
 			header = shortName + ":" + longName;
 		}
 		
+		//Perform replacement of certain header names
 		if (settings.replaceHeaders[header] !== undefined) {
 			header = settings.replaceHeaders[header];
+		}
+		
+		//Replace empty headers with string [empty]
+		if (header.replace(/\s/g, "") === "") {
+			header = "[empty]";
 		}
 		
 		return header;
