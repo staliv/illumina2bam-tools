@@ -141,7 +141,7 @@ fs.readFile(argv.samplesheet, "utf8", function(err, sampleSheet) {
 	if (err) {
 		mainLog.error(err);
 	} else {
-		mainSampleSheet = sampleSheet;
+		mainSampleSheet = sampleSheet.replace(/\r/g, "");
 		parseSheetToBarcodes(sampleSheet, start);
 	}
 });
