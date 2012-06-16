@@ -1,4 +1,16 @@
 #Installation
+
+Requires Node.js. In order to install you can use:
+
+	git clone https://github.com/joyent/node.git
+	cd node/
+	git checkout v0.6.19 //for example
+	./configure
+	make
+	make install
+	
+Now you have node and npm setup, continue to install illumina2bam-tools:	
+
 	sudo npm install illumina2bam-tools -g
 
 OR
@@ -37,6 +49,6 @@ Usage: `illumina2bam_demultiplex_wrapper`
 	  --im                      Maximum memory heap size for illumina2bam process, defaults to 2g                                                            [default: "2g"]
 	  --ib                      Maximum memory heap size for BamIndexDecoder process, defaults to 1g                                                         [default: "1g"]
 	  --debug                   Parse the first tile in each lane                                                                                            [default: false]
-	  --force                   Disables check if library already exists, hence overwrites files if the already exist                                        [default: false]
+	  --force                   Disables check if library already exists, hence overwrites files if they already exist                                        [default: false]
 	  --omitLanes               Comma separated list with numbers identifying lanes to omit                                                                  [default: ""]
 

@@ -86,7 +86,7 @@ var argv = require('optimist')
 	    .describe('im', 'Maximum memory heap size for illumina2bam process, defaults to 2g')
 	    .describe('ib', 'Maximum memory heap size for BamIndexDecoder process, defaults to 1g')
 	    .describe('debug', 'Parse the first tile in each lane')
-	    .describe('force', 'Disables check if library already exists, hence overwrites files if the already exist')
+	    .describe('force', 'Disables check if library already exists, hence overwrites files if they already exist')
 	    .describe('omitLanes', 'Comma separated list with numbers identifying lanes to omit')
 	    .describe('skipUndetermined', 'Skips output of undetermined reads. Saves lots of I/O when re-running a single lane for example.')
 	    .argv
