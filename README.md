@@ -51,4 +51,22 @@ Usage: `illumina2bam_demultiplex_wrapper`
 	  --debug                   Parse the first tile in each lane                                                                                            [default: false]
 	  --force                   Disables check if library already exists, hence overwrites files if they already exist                                        [default: false]
 	  --omitLanes               Comma separated list with numbers identifying lanes to omit                                                                  [default: ""]
+	  --skipUndetermined        Skips output of undetermined reads. Saves lots of I/O when re-running a single lane for example.                             [default: false]
 
+###Samplesheet:
+
+- Headers in the samplesheet that have (nn) after the header name will have that id added as meta data with the corresponding value in the read group of the resulting bam.
+- Lines that begin with a "#" will be dismissed.
+- The ReadString accepts the values:
+	1. I = Index/Barcode
+	2. Y = Bases are read
+	3. N = Bases are skipped
+	4. J = Joker positions in the barcode, useful if one cycle is messed up and you need to mask one of the bases in the barcode and still be able to demultiplex. For example if the barcode is TCTCGCCAT and the second index in the full read of I9Y90N2,I9Y90N2 has a bad cycle in the third position this can be masked with the ReadString I9Y90N2,I2J1I6Y90N2. The full barcode in the underlying matching algorithm will then be TCTCGCCATTCJCGCCAT. Now the IndexDecoder, which is a part of the subsequent splitting process, masks the specified base before counting mismatches on the barcode and determines if the barcode is a match or not.
+
+Example samplesheet, values are seperated by one tab: 
+
+	#FCID	Lane	Index	Library	Sample	Pool (po)	Project (pr)	Protocol (lp)	Isize	Control	Operator (op)	ReadString	Concentration	Priority	Sequencing_Center	Description
+	FCID	5	TCTCGCCAT	Lib1	Sample1		projectName	protocolName	500	N	staliv	I9Y92,I9Y92	12		LuOnk	Test run
+	FCID	5	AGATAGGTT	Lib1	Sample2		projectName	protocolName	500	N	staliv	I9Y92,I9Y92	12		LuOnk	Test run
+	FCID	5	GTCGCTAGT	Lib1	Sample3		projectName	protocolName	500	N	staliv	I9Y92,I9Y92	12		LuOnk	Test run
+	FCID	5	CAGATATCT	Lib1	Sample4		projectName	protocolName	500	N	staliv	I9Y92,I9Y92	12		LuOnk	Test run
