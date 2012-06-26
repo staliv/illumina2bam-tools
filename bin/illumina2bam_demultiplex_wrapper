@@ -93,6 +93,7 @@ var argv = require('optimist')
 	;
 
 var runId = null;
+var timeId = null;
 var mainSampleSheet = null;
 var intensitiesDirectory = path.normalize(argv.basecallsDirectory + "/../.");
 var outputDirs = {};
@@ -110,8 +111,8 @@ if (argv.f !== "bam") {
 }
 
 //Create main log
-wrench.mkdirSyncRecursive(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/"));
-var mainFileLog = fs.createWriteStream(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/demultiplex.log"), {'flags': 'a', encoding: "utf8", mode: 0666});
+wrench.mkdirSyncRecursive(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/"));
+var mainFileLog = fs.createWriteStream(path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/demultiplex.log"), {'flags': 'a', encoding: "utf8", mode: 0666});
 
 var mainLog = {
 	file: mainFileLog,
@@ -187,11 +188,11 @@ function run(barcodeFiles, barcodes, callback) {
 			var readIndex = extractFirstAttribute(barcodes[lane], "readstring").replace(",", "");
 			createOutputDirectories(barcodes[lane]);
 
-			var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/");
+			var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/");
 			wrench.mkdirSyncRecursive(undeterminedDir, 0777);
 
 			var argsIllumina2bam = ("-d64; -Xmx" + argv.im + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/illumina2bam.jar; I=" + intensitiesDirectory + "; L=" + lane + "; O=/dev/stdout; PF=false; RI=" + readIndex + "; QUIET=true; COMPRESSION_LEVEL=0" + debug + "; TEMP_DIR=" + argv.tempDirectory).split("; ");
-			var argsBamIndexDecoder = ("-d64; -Xmx" + argv.ib + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/BamIndexDecoder.jar; I=/dev/stdin; OUTPUT_DIR=" + path.normalize(argv.outputDirectory) + "; OUTPUT_FORMAT=" + argv.f + "; OUTPUT_PREFIX=na; BARCODE_FILE=" + path.normalize(barcodeFiles[lane]) + "; M=" + path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/demultiplex_metrics_" + lane + ".txt; MAX_MISMATCHES=" + argv.m + "; MIN_MISMATCH_DELTA=" + argv.d + "; MAX_NO_CALLS=" + argv.n + "; SKIP_UNDETERMINED=" + argv.skipUndetermined).split("; ");
+			var argsBamIndexDecoder = ("-d64; -Xmx" + argv.ib + "; -jar; " + illumina2bamSettings.illumina2bam.jarsDirectory + "/BamIndexDecoder.jar; I=/dev/stdin; OUTPUT_DIR=" + path.normalize(argv.outputDirectory) + "; OUTPUT_FORMAT=" + argv.f + "; OUTPUT_PREFIX=na; UNDETERMINED_TIME_ID=" + getTimeId() + "; BARCODE_FILE=" + path.normalize(barcodeFiles[lane]) + "; M=" + path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/demultiplex_metrics_" + lane + ".txt; MAX_MISMATCHES=" + argv.m + "; MIN_MISMATCH_DELTA=" + argv.d + "; MAX_NO_CALLS=" + argv.n + "; SKIP_UNDETERMINED=" + argv.skipUndetermined).split("; ");
 
 			//Perform sanity checks
 			var sanity = sanityChecks.checkEverything(barcodes[lane]);
@@ -201,7 +202,7 @@ function run(barcodeFiles, barcodes, callback) {
 				counter++;
 
 				//Create log for this lane
-				var fileLog = fs.createWriteStream(argv.outputDirectory + "/Undetermined/" + getRunId() + "/demultiplex_" + lane + ".log", {'flags': 'a', encoding: "utf8", mode: 0666});
+				var fileLog = fs.createWriteStream(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/demultiplex_" + lane + ".log", {'flags': 'a', encoding: "utf8", mode: 0666});
 				var log = {
 					file: fileLog,
 					"put": function(message) {
@@ -250,7 +251,7 @@ function run(barcodeFiles, barcodes, callback) {
 							"./BustardSummary.xsl": "BustardSummary.xsl"
 						}
 
-						var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/");
+						var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/");
 
 						copyFilesAndDirs(copyToUndeterminedDir, argv.basecallsDirectory, undeterminedDir, mainLog);
 
@@ -321,36 +322,35 @@ function decodeLane(argsIllumina2bam, argsBamIndexDecoder, lane, log, callback) 
 	});
 
 	bamIndexDecoder.on('exit', function(code) {
+
+		//Copy some files
+		var copyToUndeterminedDir = {};
+		copyToUndeterminedDir["[temp]/intensitiesconfig_lane_" + lane + ".xml"] = "IntensitiesConfig_lane_" + lane + ".xml";
+		copyToUndeterminedDir["[temp]/basecallsconfig_lane_" + lane + ".xml"] = "BaseCallsConfig_lane_" + lane + ".xml";
+		copyToUndeterminedDir["[temp]/barcodes_" + lane + ".txt"] = "barcodes_" + lane + ".txt";
+
+		var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/");
+		copyFilesAndDirs(copyToUndeterminedDir, argv.basecallsDirectory, undeterminedDir, log);
+
+		//Copy metrics files
+		for(outputDir in outputDirs) {
+			var projectName = outputDir.split("/");
+			projectName = projectName[projectName.length - 3];
+			if (projectExistsInLane(projectName, lane)) {
+				var copyToRunDir = {};
+				copyToRunDir[path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/" + getTimeId() + "/demultiplex_metrics_" + lane + ".txt"] = "demultiplex_metrics_" + lane + ".txt";
+				copyFilesAndDirs(copyToRunDir, "", outputDir, log);
+			}
+				
+		}
+
 		if (code !== 0) {
 			log.error('bamIndexDecoder process exited with code ' + code);
 			//Stop the illumina2bam process as well
 			illumina2bam.kill();
 			callback('bamIndexDecoder process exited with code ' + code, "");
 		} else {
-
-			//Copy some files
-			var copyToUndeterminedDir = {};
-			copyToUndeterminedDir["[temp]/intensitiesconfig_lane_" + lane + ".xml"] = "IntensitiesConfig_lane_" + lane + ".xml";
-			copyToUndeterminedDir["[temp]/basecallsconfig_lane_" + lane + ".xml"] = "BaseCallsConfig_lane_" + lane + ".xml";
-			copyToUndeterminedDir["[temp]/barcodes_" + lane + ".txt"] = "barcodes_" + lane + ".txt";
-
-			var undeterminedDir = path.normalize(argv.outputDirectory + "/Undetermined/" + getRunId() + "/");
-			copyFilesAndDirs(copyToUndeterminedDir, argv.basecallsDirectory, undeterminedDir, log);
-
-			//Copy metrics files
-			for(outputDir in outputDirs) {
-				var projectName = outputDir.split("/");
-				projectName = projectName[projectName.length - 3];
-				if (projectExistsInLane(projectName, lane)) {
-					var copyToRunDir = {};
-					copyToRunDir[path.normalize(argv.outputDirectory) + "/Undetermined/" + getRunId() + "/demultiplex_metrics_" + lane + ".txt"] = "demultiplex_metrics_" + lane + ".txt";
-					copyFilesAndDirs(copyToRunDir, "", outputDir, log);
-				}
-				
-			}
-		
-			callback(null, "Finished lane " + lane);
-				
+			callback(null, "Finished lane " + lane);				
 		}
 
 	});
@@ -639,16 +639,38 @@ function normalizeEmptyValues(lines) {
 	return lines;
 }
 
-
-
 function getRunId() {
 	if (runId === null || runId === undefined) {
 		var runInfoXml = fs.readFileSync(path.normalize(argv.basecallsDirectory + "/../../../RunInfo.xml"), "utf8");
 		runId = runInfoXml.split("<Run Id=\"")[1];
 		runId = runId.split("\"")[0];
 	}
-
 	return runId;
+}
+
+function getTimeId() {
+	if (timeId === null) {
+		var now = new Date();
+		timeId = formatDate(now);
+	}
+	return timeId;
+}
+
+function formatDate(date) {
+
+    var d = date.getDate();
+    var m = date.getMonth()+1;
+    var y = date.getFullYear();
+	var hours = date.getHours();
+	var minutes = date.getMinutes();
+	var seconds = date.getSeconds();
+	
+    return "" + y + "-" + padNumber(m) + "-" + padNumber(d) + "_" + padNumber(hours) + "-" + padNumber(minutes) + "-" + padNumber(seconds) + "-" + date.getMilliseconds();
+
+}
+
+function padNumber(number) {
+	return (number <= 9 ? "0" + number : number)
 }
 
 function extractFirstAttribute(barcodes, name) {
