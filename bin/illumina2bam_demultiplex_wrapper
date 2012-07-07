@@ -715,7 +715,7 @@ function copyFilesAndDirs(list, fromDir, toDir, log) {
 			fromPath = path.normalize(fromDir + name);
 		}
 		var toPath = path.normalize(toDir + "/" + list[name]);
-		if (path.existsSync(fromPath)) {
+		if (fs.existsSync(fromPath)) {
 			var object = fs.lstatSync(fromPath);
 			if (object.isDirectory()) {
 				log.info("Copying folder " + fromPath + " to " + toPath);
