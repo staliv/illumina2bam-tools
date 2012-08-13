@@ -51,7 +51,7 @@ Usage: `illumina2bam_demultiplex_wrapper`
 	  --debug                   Parse the first tile in each lane                                                                                            [default: false]
 	  --force                   Disables check if library already exists, hence overwrites files if they already exist                                        [default: false]
 	  --omitLanes               Comma separated list with numbers identifying lanes to omit                                                                  [default: ""]
-	  --skipUndetermined        Skips output of undetermined reads. Saves lots of I/O when re-running a single lane for example.                             [default: false]
+	  --keepUndetermined        Keeps output of undetermined reads. Useful for debugging purposes.								                             [default: false]
 
 ###Samplesheet:
 
